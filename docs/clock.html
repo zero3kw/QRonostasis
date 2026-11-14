@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<!-- QRonostasis clock for an OBS browser source. Shows the Unix time in seconds
+     as a QR code and switches it on the second. The code holds a URL in capitals,
+     HTTPS://ZERO3KW.GITHUB.IO/QR/<seconds>, so the prefix fits the alphanumeric
+     mode and the seconds the numeric mode (25x25 modules). Opened in a browser,
+     the URL lands on 404.html, which shows the time.
+     Dots with rounded finder patterns on a rounded plate; the rest is transparent.
+     Colors: ?fg=RRGGBB&bg=RRGGBB (hex without #). Defaults to black on white. -->
+<head>
+  <meta charset="UTF-8">
+  <title>QRonostasis Clock</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; }
+    body { display: grid; place-items: center; }
+    canvas { width: min(100vw, 100vh); height: min(100vw, 100vh); }
+  </style>
+</head>
+<body>
+  <canvas></canvas>
+  <script src="qrcode.min.js"></script>
+  <script type="module">
+    import { now, start } from "./time.js";
+
+    const params = new URLSearchParams(location.search);
+    const color = (key, fallback) => {
+      const v = params.get(key);
+      return v && /^([0-9a-f]{3}|[0-9a-f]{6})$/i.test(v) ? "#" + v : fallback;
+    };
+    const FG = color("fg", "#000"), BG = color("bg", "#fff");
+    const PREFIX = "HTTPS://ZERO3KW.GITHUB.IO/QR/";
+    const QUIET = 2, S = 16;  // quiet zone in modules, canvas px per module
+
+    const canvas = document.querySelector("canvas");
+    const ctx = canvas.getContext("2d");
+    let shown = 0;
+
+    function fill(x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.roundRect(x, y, w, h, r);
+      ctx.fill();
+    }
+
+    function draw(sec) {
+      const q = qrcode(0, "M");
+      q.addData(PREFIX, "Alphanumeric");
+      q.addData(String(sec), "Numeric");
+      q.make();
+      const n = q.getModuleCount();
+      const at = (m) => (m + QUIET) * S;
+      const inFinder = (r, c) => (r < 7 && c < 7) || (r < 7 && c >= n - 7) || (r >= n - 7 && c < 7);
+
+      canvas.width = canvas.height = (n + QUIET * 2) * S;
+      ctx.fillStyle = BG;
+      fill(0, 0, canvas.width, canvas.height, S);
+
+      for (const [r, c] of [[0, 0], [0, n - 7], [n - 7, 0]]) {
+        ctx.fillStyle = FG; fill(at(c), at(r), 7 * S, 7 * S, 1.6 * S);
+        ctx.fillStyle = BG; fill(at(c) + S, at(r) + S, 5 * S, 5 * S, S);
+        ctx.fillStyle = FG; fill(at(c) + 2 * S, at(r) + 2 * S, 3 * S, 3 * S, 0.8 * S);
+      }
+
+      ctx.fillStyle = FG;
+      for (let r = 0; r < n; r++)
+        for (let c = 0; c < n; c++)
+          if (q.isDark(r, c) && !inFinder(r, c)) {
+            ctx.beginPath();
+            ctx.arc(at(c) + S / 2, at(r) + S / 2, 0.45 * S, 0, 2 * Math.PI);
+            ctx.fill();
+          }
+    }
+
+    function tick() {
+      const sec = Math.floor(now() / 1000);
+      if (sec !== shown) { draw(sec); shown = sec; }
+      requestAnimationFrame(tick);
+    }
+
+    start();
+    tick();
+  </script>
+</body>
+</html>

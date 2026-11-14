@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ja">
+<!-- GitHub Pages serves this for any unknown path. A QRonostasis code opens
+     /QR/<Unix seconds>; this page shows that moment. Other paths get a link home. -->
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>QRonostasis</title>
+  <style>
+    html { background: #000; }
+    body {
+      margin: 0 auto; max-width: 40em; padding: 3em 1.25em 4em;
+      color: #c8c8c8; font: 16px/1.8 -apple-system, "Hiragino Sans", "Yu Gothic", sans-serif;
+    }
+    h1 { font-weight: normal; letter-spacing: 0.15em; color: #eee; font-size: 1.1em; margin: 0 0 2em; }
+    .time { font: 2.2em/1.3 ui-monospace, Menlo, monospace; color: #eee; font-variant-numeric: tabular-nums; }
+    .sub { color: #888; font: 0.95em/1.8 ui-monospace, Menlo, monospace; }
+    a { color: #eee; }
+    p { margin: 0.5em 0; }
+  </style>
+</head>
+<body>
+  <h1><a href="/QR/">QRonostasis</a></h1>
+  <div id="out"></div>
+  <script>
+    const m = location.pathname.match(/^\/qr\/(\d{10})\/?$/i);
+    const out = document.getElementById("out");
+    if (m) {
+      const sec = Number(m[1]), d = new Date(sec * 1000);
+      const fmt = (opts) => new Intl.DateTimeFormat("ja-JP", { dateStyle: "long", timeStyle: "medium", ...opts }).format(d);
+      const ago = Math.round((Date.now() - d) / 1000);
+      out.innerHTML = `
+        <p>この QR コードが表示していた時刻</p>
+        <div class="time">${fmt({})}</div>
+        <p class="sub">UTC ${fmt({ timeZone: "UTC" })}<br>Unix ${sec}</p>
+        <p class="sub">${ago >= 0 ? `${ago.toLocaleString()} 秒前` : `${(-ago).toLocaleString()} 秒後`}</p>
+        <p><a href="/QR/">QRonostasis について</a></p>`;
+    } else {
+      out.innerHTML = `<p>ページが見つかりません。</p><p><a href="/QR/">QRonostasis のトップへ</a></p>`;
+    }
+  </script>
+</body>
+</html>
