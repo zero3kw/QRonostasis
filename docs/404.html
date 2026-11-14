@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ja">
 <!-- GitHub Pages serves this for any unknown path. A QRonostasis code opens
-     /QR/<Unix seconds>; this page shows that moment. Other paths get a link home. -->
+     /QRonostasis/<Unix seconds>; this page shows that moment. Other paths get a link home. -->
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -20,10 +20,10 @@
   </style>
 </head>
 <body>
-  <h1><a href="/QR/">QRonostasis</a></h1>
+  <h1><a href="/QRonostasis/">QRonostasis</a></h1>
   <div id="out"></div>
   <script>
-    const m = location.pathname.match(/^\/qr\/(\d{10})\/?$/i);
+    const m = location.pathname.match(/^\/QRonostasis\/(\d{10})\/?$/);
     const out = document.getElementById("out");
     if (m) {
       const sec = Number(m[1]), d = new Date(sec * 1000);
@@ -34,9 +34,9 @@
         <div class="time">${fmt({})}</div>
         <p class="sub">UTC ${fmt({ timeZone: "UTC" })}<br>Unix ${sec}</p>
         <p class="sub">${ago >= 0 ? `${ago.toLocaleString()} 秒前` : `${(-ago).toLocaleString()} 秒後`}</p>
-        <p><a href="/QR/">QRonostasis について</a></p>`;
+        <p><a href="/QRonostasis/">QRonostasis について</a></p>`;
     } else {
-      out.innerHTML = `<p>ページが見つかりません。</p><p><a href="/QR/">QRonostasis のトップへ</a></p>`;
+      out.innerHTML = `<p>ページが見つかりません。</p><p><a href="/QRonostasis/">QRonostasis のトップへ</a></p>`;
     }
   </script>
 </body>

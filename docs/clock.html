@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <!-- QRonostasis clock for an OBS browser source. Shows the Unix time in seconds
-     as a QR code and switches it on the second. The code holds a URL in capitals,
-     HTTPS://ZERO3KW.GITHUB.IO/QR/<seconds>, so the prefix fits the alphanumeric
-     mode and the seconds the numeric mode (25x25 modules). Opened in a browser,
-     the URL lands on 404.html, which shows the time.
+     as a QR code and switches it on the second. The code holds the URL
+     HTTPS://ZERO3KW.GITHUB.IO/QRonostasis/<seconds> in three segments: the
+     scheme and host in capitals (alphanumeric mode), the repository path as is
+     (byte mode; GitHub Pages matches it case-sensitively) and the seconds
+     (numeric mode), 29x29 modules. Opened in a browser, the URL lands on
+     404.html, which shows the time.
      Dots with rounded finder patterns on a rounded plate; the rest is transparent.
      Colors: ?fg=RRGGBB&bg=RRGGBB (hex without #). Defaults to black on white. -->
 <head>
@@ -13,7 +15,7 @@
   <style>
     html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; }
     body { display: grid; place-items: center; }
-    canvas { width: min(100vw, 100vh); height: min(100vw, 100vh); }
+    canvas { display: block; }
   </style>
 </head>
 <body>
@@ -28,8 +30,8 @@
       return v && /^([0-9a-f]{3}|[0-9a-f]{6})$/i.test(v) ? "#" + v : fallback;
     };
     const FG = color("fg", "#000"), BG = color("bg", "#fff");
-    const PREFIX = "HTTPS://ZERO3KW.GITHUB.IO/QR/";
-    const QUIET = 2, S = 16;  // quiet zone in modules, canvas px per module
+    const HOST = "HTTPS://ZERO3KW.GITHUB.IO/", PATH = "QRonostasis/";
+    const QUIET = 2;  // quiet zone in modules
 
     const canvas = document.querySelector("canvas");
     const ctx = canvas.getContext("2d");
@@ -41,34 +43,46 @@
       ctx.fill();
     }
 
+    // The canvas matches the source in device pixels and every module edge is
+    // snapped to a whole pixel, so a small source stays sharp instead of being
+    // resampled (modules may alternate between, say, 1 and 2 px). Below 3 px
+    // per module a dot cannot be drawn round, so modules become squares there.
     function draw(sec) {
       const q = qrcode(0, "M");
-      q.addData(PREFIX, "Alphanumeric");
+      q.addData(HOST, "Alphanumeric");
+      q.addData(PATH, "Byte");
       q.addData(String(sec), "Numeric");
       q.make();
-      const n = q.getModuleCount();
-      const at = (m) => (m + QUIET) * S;
+      const n = q.getModuleCount(), total = n + QUIET * 2, dpr = devicePixelRatio || 1;
+      const size = Math.floor(Math.min(innerWidth, innerHeight) * dpr);
+      const edge = (m) => Math.round((m + QUIET) * size / total);  // pixel edge of module m
+      const span = (m, k = 1) => edge(m + k) - edge(m);
       const inFinder = (r, c) => (r < 7 && c < 7) || (r < 7 && c >= n - 7) || (r >= n - 7 && c < 7);
+      const round = size / total >= 3, rad = round ? size / total : 0;
 
-      canvas.width = canvas.height = (n + QUIET * 2) * S;
+      canvas.width = canvas.height = size;
+      canvas.style.width = canvas.style.height = `${size / dpr}px`;
       ctx.fillStyle = BG;
-      fill(0, 0, canvas.width, canvas.height, S);
+      fill(0, 0, size, size, rad);
 
       for (const [r, c] of [[0, 0], [0, n - 7], [n - 7, 0]]) {
-        ctx.fillStyle = FG; fill(at(c), at(r), 7 * S, 7 * S, 1.6 * S);
-        ctx.fillStyle = BG; fill(at(c) + S, at(r) + S, 5 * S, 5 * S, S);
-        ctx.fillStyle = FG; fill(at(c) + 2 * S, at(r) + 2 * S, 3 * S, 3 * S, 0.8 * S);
+        ctx.fillStyle = FG; fill(edge(c), edge(r), span(c, 7), span(r, 7), 1.6 * rad);
+        ctx.fillStyle = BG; fill(edge(c + 1), edge(r + 1), span(c + 1, 5), span(r + 1, 5), rad);
+        ctx.fillStyle = FG; fill(edge(c + 2), edge(r + 2), span(c + 2, 3), span(r + 2, 3), 0.8 * rad);
       }
 
       ctx.fillStyle = FG;
       for (let r = 0; r < n; r++)
-        for (let c = 0; c < n; c++)
-          if (q.isDark(r, c) && !inFinder(r, c)) {
-            ctx.beginPath();
-            ctx.arc(at(c) + S / 2, at(r) + S / 2, 0.45 * S, 0, 2 * Math.PI);
-            ctx.fill();
-          }
+        for (let c = 0; c < n; c++) {
+          if (!q.isDark(r, c) || inFinder(r, c)) continue;
+          if (!round) { ctx.fillRect(edge(c), edge(r), span(c), span(r)); continue; }
+          ctx.beginPath();
+          ctx.arc(edge(c) + span(c) / 2, edge(r) + span(r) / 2, 0.45 * Math.min(span(c), span(r)), 0, 2 * Math.PI);
+          ctx.fill();
+        }
     }
+
+    addEventListener("resize", () => { shown = 0; });
 
     function tick() {
       const sec = Math.floor(now() / 1000);
