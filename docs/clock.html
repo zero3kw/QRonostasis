@@ -7,7 +7,8 @@
      (byte mode; GitHub Pages matches it case-sensitively) and the seconds
      (numeric mode), 29x29 modules. Opened in a browser, the URL lands on
      404.html, which shows the time.
-     Dots with rounded finder patterns on a rounded plate; the rest is transparent.
+     Dots with circular finder patterns and the logo in the center 5x5 modules
+     (error correction M recovers them) on a rounded plate; the rest is transparent.
      Colors: ?fg=RRGGBB&bg=RRGGBB (hex without #). Defaults to black on white. -->
 <head>
   <meta charset="UTF-8">
@@ -58,6 +59,7 @@
       const edge = (m) => Math.round((m + QUIET) * size / total);  // pixel edge of module m
       const span = (m, k = 1) => edge(m + k) - edge(m);
       const inFinder = (r, c) => (r < 7 && c < 7) || (r < 7 && c >= n - 7) || (r >= n - 7 && c < 7);
+      const L = (n - 5) / 2, inLogo = (r, c) => r >= L && r < L + 5 && c >= L && c < L + 5;
       const round = size / total >= 3, rad = round ? size / total : 0;
 
       canvas.width = canvas.height = size;
@@ -65,21 +67,40 @@
       ctx.fillStyle = BG;
       fill(0, 0, size, size, rad);
 
+      // Finder patterns as concentric circles (ring, gap, core in 1:1:3:1:1).
+      // Nothing may cross the white ring, or readers stop finding them.
       for (const [r, c] of [[0, 0], [0, n - 7], [n - 7, 0]]) {
-        ctx.fillStyle = FG; fill(edge(c), edge(r), span(c, 7), span(r, 7), 1.6 * rad);
-        ctx.fillStyle = BG; fill(edge(c + 1), edge(r + 1), span(c + 1, 5), span(r + 1, 5), rad);
-        ctx.fillStyle = FG; fill(edge(c + 2), edge(r + 2), span(c + 2, 3), span(r + 2, 3), 0.8 * rad);
+        const x = edge(c) + span(c, 7) / 2, y = edge(r) + span(r, 7) / 2, R = span(c, 7) / 2;
+        for (const [k, color] of [[1, FG], [5 / 7, BG], [3 / 7, FG]]) {
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.arc(x, y, R * k, 0, 2 * Math.PI);
+          ctx.fill();
+        }
       }
 
       ctx.fillStyle = FG;
       for (let r = 0; r < n; r++)
         for (let c = 0; c < n; c++) {
-          if (!q.isDark(r, c) || inFinder(r, c)) continue;
+          if (!q.isDark(r, c) || inFinder(r, c) || inLogo(r, c)) continue;
           if (!round) { ctx.fillRect(edge(c), edge(r), span(c), span(r)); continue; }
           ctx.beginPath();
           ctx.arc(edge(c) + span(c) / 2, edge(r) + span(r) / 2, 0.45 * Math.min(span(c), span(r)), 0, 2 * Math.PI);
           ctx.fill();
         }
+
+      logo(edge(L) + span(L, 5) / 2, edge(L) + span(L, 5) / 2, span(L, 5) * 3.8 / 5);
+    }
+
+    // The logo: a dial of dots with the hand at 4 o'clock, which also reads as
+    // the tail of a Q. Drawn in a box of side s centered on (x, y).
+    function logo(x, y, s) {
+      const at = (hour, r) => [x + Math.sin(hour * Math.PI / 6) * r * s, y - Math.cos(hour * Math.PI / 6) * r * s];
+      const dot = ([px, py], r) => { ctx.beginPath(); ctx.arc(px, py, r * s, 0, 2 * Math.PI); ctx.fill(); };
+      for (let h = 0; h < 12; h++) if (h !== 4) dot(at(h, 0.36), 0.06);
+      dot([x, y], 0.09);
+      ctx.strokeStyle = FG; ctx.lineWidth = 0.09 * s; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(...at(4, 0.5)); ctx.stroke();
     }
 
     addEventListener("resize", () => { shown = 0; });
