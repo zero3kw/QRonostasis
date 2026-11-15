@@ -30,13 +30,13 @@
       const fmt = (opts) => new Intl.DateTimeFormat("ja-JP", { dateStyle: "long", timeStyle: "medium", ...opts }).format(d);
       const ago = Math.round((Date.now() - d) / 1000);
       out.innerHTML = `
-        <p>この QR コードが表示していた時刻</p>
+        <p>この QR コードの表示時刻</p>
         <div class="time">${fmt({})}</div>
         <p class="sub">UTC ${fmt({ timeZone: "UTC" })}<br>Unix ${sec}</p>
         <p class="sub">${ago >= 0 ? `${ago.toLocaleString()} 秒前` : `${(-ago).toLocaleString()} 秒後`}</p>
         <p><a href="/QRonostasis/">QRonostasis について</a></p>`;
     } else {
-      out.innerHTML = `<p>ページが見つかりません。</p><p><a href="/QRonostasis/">QRonostasis のトップへ</a></p>`;
+      out.innerHTML = `<p>該当ページなし。</p><p><a href="/QRonostasis/">QRonostasis トップページ</a></p>`;
     }
   </script>
 </body>

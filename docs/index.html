@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="映像の1コマごとに、機械で読める時刻を残す QR コードの時計。">
+  <meta name="description" content="映像の全コマに、機械で読み取り可能な時刻を記録する QR コード時計です。">
   <title>QRonostasis</title>
   <style>
     html { background: #000; }
@@ -21,7 +21,7 @@
     code, .url { font-family: ui-monospace, Menlo, monospace; }
     .url { display: flex; gap: 0.5em; flex-wrap: wrap; align-items: center; }
     .url input { flex: 1; min-width: 0; padding: 0.4em; color: #eee; background: #111; border: 1px solid #333; font: inherit; }
-    button { padding: 0.4em 1em; color: #000; background: #ddd; border: 0; cursor: pointer; font: inherit; }
+    button, #open { text-decoration: none; padding: 0.4em 1em; color: #000; background: #ddd; border: 0; cursor: pointer; font: inherit; }
     a { color: #eee; }
     li { margin: 0.3em 0; }
     .colors { display: flex; gap: 1.5em; flex-wrap: wrap; align-items: center; margin-bottom: 0.75em; }
@@ -32,7 +32,7 @@
 </head>
 <body>
   <h1>QRonostasis</h1>
-  <p class="lead">映像の1コマごとに、機械で読める時刻を残す QR コードの時計。</p>
+  <p class="lead">映像の全コマに、機械で読み取り可能な時刻を記録する QR コード時計です。</p>
 
   <div class="demo">
     <iframe id="demo" src="clock.html" title="QR コードの時計"></iframe>
@@ -45,9 +45,9 @@
   <h2>OBS での使い方</h2>
   <ol>
     <li>ソースに「ブラウザ」を追加します。</li>
-    <li>URL に次のアドレスを入れます。</li>
-    <li>幅と高さを同じ値にします。QR コードはソースの枠いっぱいに表示されます。</li>
-    <li>画面の隅など、視聴の邪魔にならない場所に置きます。1 辺 60px 以上を推奨します。</li>
+    <li>URL 欄に下記のアドレスを入力します。</li>
+    <li>幅と高さを同じ値に設定します。QR コードはソースの枠全体に表示されます。</li>
+    <li>画面の隅など、視聴の妨げにならない位置に配置します。推奨サイズは 1 辺 60px 以上です。</li>
   </ol>
   <div class="colors">
     <label>点の色 <input type="color" id="fg" value="#ffffff"></label>
@@ -57,22 +57,23 @@
   <div class="url">
     <input id="url" readonly>
     <button id="copy">コピー</button>
+    <a id="open" target="_blank" rel="noopener">開く</a>
   </div>
 
   <h2>仕組み</h2>
   <ul>
-    <li>QR コードの中身は、Unix 時刻の秒（10 桁の数字）を末尾に付けた URL です。秒の境目で切り替わります。</li>
-    <li>スマートフォンのカメラで読むと、その時刻を表示するページが開きます。</li>
-    <li>録画の中で数字が切り替わるコマを探すと、そのコマの時刻が 1 コマの精度で分かります。そこから全コマの時刻が決まります。</li>
-    <li>QR コードは 1 辺 60px 以上あれば、一般的な配信や動画の画質で読み取れます。</li>
+    <li>QR コードの内容は、末尾に Unix 時刻の秒（10 桁）を付けた URL です。毎秒更新します。</li>
+    <li>スマートフォンのカメラで読み取ると、その時刻の表示ページに移動します。</li>
+    <li>録画内で数字が切り替わるコマから、時刻を 1 コマ単位の精度で特定します。これを基準に全コマの時刻を算出します。</li>
+    <li>1 辺 60px 以上なら、一般的な配信・動画の画質で読み取り可能です。</li>
   </ul>
 
   <h2>時刻の基準</h2>
-  <p>PC の時計がずれていても正しい時刻で表示するため、Akamai の時刻配信（time.akamai.com）で補正します。補正は 10 分ごとに行います。接続できない場合は PC の時計で表示します。</p>
-  <p>このページは、時刻の取得以外の通信を行いません。利用状況の収集もしていません。</p>
+  <p>PC の時計の誤差を、Akamai の時刻配信（time.akamai.com）で補正します。補正間隔は 10 分です。接続不可の場合は PC の時計を使用します。</p>
+  <p>通信は時刻の取得のみです。利用状況の収集はありません。</p>
 
   <h2>読み取り</h2>
-  <p>QR コードの時刻の読み取りと、映像の遅延の測定は、iPhone アプリで行います（準備中）。</p>
+  <p>QR コードの時刻の読み取り、映像の遅延測定は iPhone アプリで対応します（準備中）。</p>
 
   <script type="module">
     import { clock, now, start } from "./time.js";
@@ -100,16 +101,16 @@
       try { localStorage.setItem(KEY, JSON.stringify({ fg, bg })); } catch {}
       const custom = fg !== "#ffffff" || bg !== "#101114";
       url = custom ? `${base}?fg=${fg.slice(1)}&bg=${bg.slice(1)}` : base;
-      $("url").value = url;
+      $("url").value = $("open").href = url;
       $("copy").textContent = "コピー";
       $("demo").src = url;
       const lf = lum(fg), lb = lum(bg), ratio = (Math.max(lf, lb) + 0.05) / (Math.min(lf, lb) + 0.05);
-      $("warn").textContent = ratio < 4 ? "色の差が小さく、読み取れない可能性があります。" : "";
+      $("warn").textContent = ratio < 4 ? "色の差が小さく、読み取り不可の可能性があります。" : "";
     }
     $("fg").oninput = $("bg").oninput = update;
     $("copy").onclick = async () => {
       await navigator.clipboard.writeText(url);
-      $("copy").textContent = "コピーしました";
+      $("copy").textContent = "コピー完了";
     };
     update();
 
@@ -120,7 +121,7 @@
       nowEl.textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}.${pad(Math.floor(d.getMilliseconds() / 100), 1)}`;
       if (clock.rtt !== null) {
         const ms = Math.round(clock.offset);
-        syncEl.textContent = `この端末の時計の補正 ${ms >= 0 ? "+" : ""}${ms} ms（往復 ${clock.rtt} ms）`;
+        syncEl.textContent = `この端末の時計の補正値 ${ms >= 0 ? "+" : ""}${ms} ms（往復 ${clock.rtt} ms）`;
       }
       requestAnimationFrame(tick);
     }
