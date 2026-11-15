@@ -50,8 +50,8 @@
     <li>画面の隅など、視聴の邪魔にならない場所に置きます。1 辺 60px 以上を推奨します。</li>
   </ol>
   <div class="colors">
-    <label>点の色 <input type="color" id="fg" value="#000000"></label>
-    <label>背景の色 <input type="color" id="bg" value="#ffffff"></label>
+    <label>点の色 <input type="color" id="fg" value="#ffffff"></label>
+    <label>背景の色 <input type="color" id="bg" value="#101114"></label>
     <span class="warn" id="warn"></span>
   </div>
   <div class="url">
@@ -98,14 +98,13 @@
     function update() {
       const fg = $("fg").value, bg = $("bg").value;
       try { localStorage.setItem(KEY, JSON.stringify({ fg, bg })); } catch {}
-      const custom = fg !== "#000000" || bg !== "#ffffff";
+      const custom = fg !== "#ffffff" || bg !== "#101114";
       url = custom ? `${base}?fg=${fg.slice(1)}&bg=${bg.slice(1)}` : base;
       $("url").value = url;
       $("copy").textContent = "コピー";
       $("demo").src = url;
       const lf = lum(fg), lb = lum(bg), ratio = (Math.max(lf, lb) + 0.05) / (Math.min(lf, lb) + 0.05);
-      $("warn").textContent = ratio < 4 ? "色の差が小さく、読み取れない可能性があります。"
-        : lf > lb ? "点が背景より明るいと、読み取れない QR リーダーがあります。" : "";
+      $("warn").textContent = ratio < 4 ? "色の差が小さく、読み取れない可能性があります。" : "";
     }
     $("fg").oninput = $("bg").oninput = update;
     $("copy").onclick = async () => {
