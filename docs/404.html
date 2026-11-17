@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html lang="ja">
 <!-- GitHub Pages serves this for any unknown path. A QRonostasis code opens
-     /QRonostasis/<Unix seconds>; this page shows that moment. Other paths get a link home. -->
+     /QRonostasis/<Unix seconds>/<beacon digits>; this page shows that moment
+     and checks the digits against drand (beacon.js). Other paths get a link home. -->
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -23,19 +24,23 @@
 <body>
   <h1><a href="/QRonostasis/">QRonostasis</a></h1>
   <div id="out"></div>
-  <script>
-    const m = location.pathname.match(/^\/QRonostasis\/(\d{10})\/?$/);
+  <script type="module">
+    import { roundTime, verify } from "/QRonostasis/beacon.js";
+    const m = location.pathname.match(/^\/QRonostasis\/(\d{10})\/(\d{20})\/?$/);
     const out = document.getElementById("out");
+    const fmt = (sec, opts = {}) => new Intl.DateTimeFormat("ja-JP", { dateStyle: "long", timeStyle: "medium", ...opts }).format(sec * 1000);
     if (m) {
-      const sec = Number(m[1]), d = new Date(sec * 1000);
-      const fmt = (opts) => new Intl.DateTimeFormat("ja-JP", { dateStyle: "long", timeStyle: "medium", ...opts }).format(d);
-      const ago = Math.round((Date.now() - d) / 1000);
+      const sec = Number(m[1]), digits = m[2];
+      const ago = Math.round(Date.now() / 1000 - sec);
       out.innerHTML = `
         <p>この QR コードの表示時刻</p>
-        <div class="time">${fmt({})}</div>
-        <p class="sub">UTC ${fmt({ timeZone: "UTC" })}<br>Unix ${sec}</p>
+        <div class="time">${fmt(sec)}</div>
+        <p class="sub">UTC ${fmt(sec, { timeZone: "UTC" })}<br>Unix ${sec}</p>
         <p class="sub">${ago >= 0 ? `${ago.toLocaleString()} 秒前` : `${(-ago).toLocaleString()} 秒後`}</p>
+        <p id="check" class="sub"></p>
         <p><a href="/QRonostasis/">QRonostasis について</a></p>`;
+      const round = await verify(sec, digits);
+      if (round) document.getElementById("check").textContent = `検証済み：${fmt(roundTime(round))} 以降に生成`;
     } else {
       out.innerHTML = `<p>該当ページなし。</p><p><a href="/QRonostasis/">QRonostasis トップページ</a></p>`;
     }

@@ -2,11 +2,13 @@
 <html lang="en">
 <!-- QRonostasis clock for an OBS browser source. Shows the Unix time in seconds
      as a QR code and switches it on the second. The code holds the URL
-     HTTPS://ZERO3KW.GITHUB.IO/QRonostasis/<seconds> in three segments: the
+     HTTPS://ZERO3KW.GITHUB.IO/QRonostasis/<seconds>/<beacon digits>: the
      scheme and host in capitals (alphanumeric mode), the repository path as is
      (byte mode; GitHub Pages matches it case-sensitively) and the seconds
-     (numeric mode), 29x29 modules. Opened in a browser, the URL lands on
-     404.html, which shows the time.
+     (numeric mode), then "/" and 20 digits of the drand beacon (beacon.js),
+     33x33 modules. The beacon shows the code was made after its round; while
+     drand cannot be reached, no code is shown. Opened in a
+     browser, the URL lands on 404.html, which shows and checks the time.
      Outside OBS (no window.obsstudio) the page is black instead of transparent.
      Dots with circular finder patterns and the logo in the center 5x5 modules
      (error correction M recovers them) on a rounded plate; the rest is transparent.
@@ -26,6 +28,7 @@
   <script src="qrcode.min.js"></script>
   <script type="module">
     import { now, start } from "./time.js";
+    import { digitsFor, start as startBeacon } from "./beacon.js";
 
     const params = new URLSearchParams(location.search);
     const color = (key, fallback) => {
@@ -53,10 +56,14 @@
     // resampled (modules may alternate between, say, 1 and 2 px). Below 3 px
     // per module a dot cannot be drawn round, so modules become squares there.
     function draw(sec) {
+      const digits = digitsFor(sec);
+      if (!digits) { canvas.width = 0; return; }
       const q = qrcode(0, "M");
       q.addData(HOST, "Alphanumeric");
       q.addData(PATH, "Byte");
       q.addData(String(sec), "Numeric");
+      q.addData("/", "Alphanumeric");
+      q.addData(digits, "Numeric");
       q.make();
       const n = q.getModuleCount(), total = n + QUIET * 2, dpr = devicePixelRatio || 1;
       const size = Math.floor(Math.min(innerWidth, innerHeight) * dpr);
@@ -116,6 +123,7 @@
     }
 
     start();
+    startBeacon();
     tick();
   </script>
 </body>
